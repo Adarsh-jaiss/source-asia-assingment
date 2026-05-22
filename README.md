@@ -108,6 +108,11 @@ This repository contains the backend assignment for Source Asia, implementing a 
    ```bash
    go run main.go
    ```
+   OR 
+   
+   ```bash
+   make run
+   ```
    The server will start on port `8080`.
 
 ### Option 2: Running with Docker Compose
