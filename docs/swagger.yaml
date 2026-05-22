@@ -1,0 +1,308 @@
+basePath: /
+definitions:
+  models.MediaAppendRequest:
+    properties:
+      image_urls:
+        items:
+          type: string
+        type: array
+      video_urls:
+        items:
+          type: string
+        type: array
+    type: object
+  models.ProductCreateRequest:
+    properties:
+      image_urls:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      sku:
+        type: string
+      video_urls:
+        items:
+          type: string
+        type: array
+    required:
+    - name
+    - sku
+    type: object
+  models.ProductDetailResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      image_count:
+        type: integer
+      image_urls:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      sku:
+        type: string
+      thumbnail_url:
+        type: string
+      video_count:
+        type: integer
+      video_urls:
+        items:
+          type: string
+        type: array
+    type: object
+  models.ProductSummaryResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      image_count:
+        type: integer
+      name:
+        type: string
+      sku:
+        type: string
+      thumbnail_url:
+        type: string
+      video_count:
+        type: integer
+    type: object
+  models.RateLimitRequest:
+    properties:
+      payload: {}
+      user_id:
+        type: string
+    required:
+    - payload
+    - user_id
+    type: object
+  models.StatsResponse:
+    properties:
+      stats:
+        items:
+          $ref: '#/definitions/models.UserStats'
+        type: array
+    type: object
+  models.UserStats:
+    properties:
+      accepted_count_current_window:
+        type: integer
+      rejected_count_total:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  utils.APIError:
+    properties:
+      code:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        type: string
+    type: object
+  utils.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/utils.APIError'
+      success:
+        example: false
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Rate-limited API and Product Catalog for the Source Asia assignment.
+  title: Source Asia Backend API
+  version: "1.0"
+paths:
+  /api/v1/products:
+    get:
+      description: Retrieves a paginated list of products. Does not include full image
+        or video URL arrays.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductSummaryResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: List products
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Creates a product with name, sku, and media URLs. Validates that
+        max 20 URLs are passed per type.
+      parameters:
+      - description: Product Request Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ProductDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create a new product
+      tags:
+      - Products
+  /api/v1/products/{id}:
+    get:
+      description: Retrieves full product details including image and video URL arrays.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get a product by ID
+      tags:
+      - Products
+  /api/v1/products/{id}/media:
+    post:
+      consumes:
+      - application/json
+      description: Appends image and video URLs to an existing product. Validates
+        max 20 URLs per array.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media Append Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.MediaAppendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Append media to a product
+      tags:
+      - Products
+  /api/v1/request:
+    post:
+      consumes:
+      - application/json
+      description: Accepts a request and checks if it's within the rate limit. Returns
+        201 if accepted, 429 if rejected.
+      parameters:
+      - description: Request Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RateLimitRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Record a request and enforce rate limiting
+      tags:
+      - RateLimit
+  /api/v1/stats:
+    get:
+      description: Returns the accepted requests in the current window and total rejected
+        requests per user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.StatsResponse'
+      summary: Retrieve rate limiting statistics
+      tags:
+      - RateLimit
+swagger: "2.0"
